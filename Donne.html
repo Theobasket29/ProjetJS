@@ -2,16 +2,153 @@
 <html lang="fr">
     <head>
         <meta charset="UTF-8">
-        <meta name"viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Données</title>
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-        <script src="../Data/survey_results_NA.json"></script>
-        <script src="../Data/survey_results_WE.json"></script>
         <script src="donne.js"></script>
+        <script src="graph2.js"></script>
     </head>
     <body>
         <h2>Focus sur le revenue moyen en fonction de l'expérience professionelle</h2>
+        <canvas id="revenueChart" width="400" height="200"></canvas>
 
+        <h1>Top N des systèmes d'exploitation</h1>
+  
+  <label for="continent">Continent :</label>
+  <select id="continent"></select>
+
+  <label for="DevType">Métier :</label>
+  <select id="DevType"></select>
+
+  <label for="topN">Taille du Top :</label>
+  <select id="topN">
+    <option value="5">Top 5</option>
+    <option value="6">Top 6</option>
+    <option value="7">Top 7</option>
+    <option value="8">Top 8</option>
+  </select>
+
+  <canvas id="osChart" width="800" height="400"></canvas>
+
+  <script>
+    async function fetchData() {
+        const response = await fetch('/data');
+        return response.json();
+    }
+
+    async function init() {
+        const data = await fetchData();
+        const continentSelect = document.getElementById('continent');
+        const devTypeSelect = document.getElementById('DevType');
+        const topNSelect = document.getElementById('topN');
+        const chartCanvas = document.getElementById('osChart');
+        let currentChart = null;
+
+        // Charger les continents
+        const continents = [...new Set(data.map(d => d.continent))];
+        continents.forEach(continent => {
+            const option = document.createElement('option');
+            option.value = continent;
+            option.textContent = continent;
+            continentSelect.appendChild(option);
+        });
+
+        // Charger les métiers pour un continent
+        continentSelect.addEventListener('change', () => {
+            devTypeSelect.innerHTML = '';
+            const selectedContinent = continentSelect.value;
+            const devTypes = [...new Set(data
+                .filter(d => d.continent === selectedContinent)
+                .map(d => d.DevType))];
+            
+            devTypes.forEach(devType => {
+                const option = document.createElement('option');
+                option.value = devType;
+                option.textContent = devType;
+                devTypeSelect.appendChild(option);
+            });
+        });
+
+        // Mettre à jour le graphique
+        const updateChart = () => {
+            const selectedContinent = continentSelect.value;
+            const selectedDevType = devTypeSelect.value;
+            const topN = parseInt(topNSelect.value, 10);
+
+            const selectedData = data.find(d => 
+                d.continent === selectedContinent && d.DevType === selectedDevType
+            );
+
+            if (selectedData) {
+                const osData = selectedData.OperatingSystems.slice(0, topN);
+                const labels = osData.map(os => os.name);
+                const values = osData.map(os => os.count);
+
+                // Détruire l'ancien graphique
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                // Créer un nouveau graphique
+                currentChart = new Chart(chartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `Top ${topN} Systèmes d'exploitation`,
+                            data: values,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        // Ajouter des écouteurs d'événements
+        devTypeSelect.addEventListener('change', updateChart);
+        topNSelect.addEventListener('change', updateChart);
+
+        // Charger les données initiales
+        continentSelect.dispatchEvent(new Event('change'));
+    }
+
+    
+
+    init();
+  </script>
+
+  
+<h1>Top Systèmes d'Exploitation Utilisés</h1>
+
+<label for="continent">Continent :</label>
+<select id="continent">
+    <option value="">-- Sélectionner un Continent --</option>
+</select>
+
+<label for="devType">Métier :</label>
+<select id="devType">
+    <option value="">-- Sélectionner un Métier --</option>
+</select>
+
+<label for="topN">Afficher le Top :</label>
+<select id="topN">
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+</select>
+
+<canvas id="osChart" width="400" height="200"></canvas>
     </body>
 </html>
